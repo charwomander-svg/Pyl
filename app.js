@@ -5,6 +5,7 @@ import {
   getCurrentPlayer,
   passCurrentPlayer,
   performAIAction,
+  nextActivePlayerIndex,
   spinCurrentPlayer
 } from './game.js';
 
@@ -39,9 +40,7 @@ function canCurrentPlayerPass() {
     current?.human &&
       !state.finished &&
       current.spins > 0 &&
-      state.players.some(
-        (player, index) => index !== state.currentPlayerIndex && !player.eliminated && player.spins > 0
-      )
+      nextActivePlayerIndex(state) !== -1
   );
 }
 
