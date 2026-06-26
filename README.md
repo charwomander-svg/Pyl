@@ -1,4 +1,4 @@
-# Pyl
+# Press Your Luck
 
 Press Your Luck browser game.
 

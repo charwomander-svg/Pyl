@@ -8,6 +8,8 @@ import {
   spinCurrentPlayer
 } from './game.js';
 
+const AI_TURN_DELAY_MS = 700;
+
 const elements = {
   board: document.querySelector('#board'),
   controls: document.querySelector('#controls'),
@@ -29,6 +31,18 @@ function clearAiTimer() {
     window.clearTimeout(aiTimer);
     aiTimer = null;
   }
+}
+
+function canCurrentPlayerPass() {
+  const current = getCurrentPlayer(state);
+  return Boolean(
+    current?.human &&
+      !state.finished &&
+      current.spins > 0 &&
+      state.players.some(
+        (player, index) => index !== state.currentPlayerIndex && !player.eliminated && player.spins > 0
+      )
+  );
 }
 
 function renderBoard() {
@@ -67,7 +81,7 @@ function renderLog() {
 function renderControls() {
   const current = getCurrentPlayer(state);
   const canAct = current?.human && !state.finished && current.spins > 0;
-  const canPass = canAct && state.players.some((player, index) => index !== state.currentPlayerIndex && !player.eliminated && player.spins > 0);
+  const canPass = canCurrentPlayerPass();
 
   elements.spin.disabled = !canAct;
   elements.pass.disabled = !canPass;
@@ -92,7 +106,7 @@ function render() {
   renderControls();
 
   if (!state.finished && getCurrentPlayer(state)?.human === false) {
-    aiTimer = window.setTimeout(runAiTurn, 700);
+    aiTimer = window.setTimeout(runAiTurn, AI_TURN_DELAY_MS);
   }
 }
 
@@ -114,7 +128,7 @@ function runAiTurn() {
   render();
 
   if (!state.finished && getCurrentPlayer(state)?.human === false) {
-    aiTimer = window.setTimeout(runAiTurn, 700);
+    aiTimer = window.setTimeout(runAiTurn, AI_TURN_DELAY_MS);
   }
 }
 

@@ -1,4 +1,7 @@
 export const STARTING_SPINS = 4;
+export const AI_PASS_CASH_THRESHOLD = 8000;
+export const AI_PASS_WHAMMY_THRESHOLD = 2;
+export const AI_PASS_SPIN_THRESHOLD = 7;
 
 export const BOARD_SPACES = [
   { type: 'cash', label: '$500', amount: 500 },
@@ -214,7 +217,11 @@ export function performAIAction(state, rng = Math.random) {
     return state;
   }
 
-  if (player.cash >= 8000 || player.whammies >= 2 || player.spins >= 7) {
+  if (
+    player.cash >= AI_PASS_CASH_THRESHOLD ||
+    player.whammies >= AI_PASS_WHAMMY_THRESHOLD ||
+    player.spins >= AI_PASS_SPIN_THRESHOLD
+  ) {
     passCurrentPlayer(state);
     return state;
   }
