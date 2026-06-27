@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pyl — Press Your Luck</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <p class="eyebrow">Pyl</p>
+        <h1>Press Your Luck</h1>
+        <p class="lede">
+          Spin the board, bank cash, and decide when to pass before the Whammies catch you.
+        </p>
+      </header>
+
+      <section class="status-panel">
+        <div>
+          <p id="status">Loading…</p>
+          <h2 id="current-player"></h2>
+        </div>
+        <p id="message" class="message"></p>
+      </section>
+
+      <section class="game-layout">
+        <div class="board-panel">
+          <h2>Big Board</h2>
+          <ul id="board" class="board" aria-live="polite"></ul>
+        </div>
+
+        <aside class="sidebar">
+          <section>
+            <h2>Players</h2>
+            <div id="players" class="players"></div>
+          </section>
+
+          <section class="controls-card">
+            <h2>Controls</h2>
+            <div id="controls" class="controls">
+              <button id="spin-button" class="primary">Spin</button>
+              <button id="pass-button">Pass</button>
+              <button id="reset-button">New Game</button>
+            </div>
+          </section>
+
+          <section>
+            <h2>History</h2>
+            <ol id="log" class="log"></ol>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
