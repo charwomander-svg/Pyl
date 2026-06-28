@@ -6,6 +6,7 @@ import {
   applySpace,
   createGame,
   determineWinner,
+  getTotalSpins,
   passCurrentPlayer,
   spinCurrentPlayer
 } from '../game.js';
@@ -15,9 +16,12 @@ test('createGame sets up three contestants', () => {
 
   assert.equal(state.players.length, 3);
   assert.equal(state.currentPlayerIndex, 0);
-  assert.equal(state.players[0].spins, 4);
-  assert.equal(state.players[1].spins, 4);
-  assert.equal(state.players[2].spins, 4);
+  assert.equal(state.players[0].earnedSpins, 4);
+  assert.equal(state.players[0].passedSpins, 0);
+  assert.equal(state.players[1].earnedSpins, 4);
+  assert.equal(state.players[1].passedSpins, 0);
+  assert.equal(state.players[2].earnedSpins, 4);
+  assert.equal(state.players[2].passedSpins, 0);
 });
 
 test('spinCurrentPlayer resolves a cash space', () => {
@@ -26,7 +30,8 @@ test('spinCurrentPlayer resolves a cash space', () => {
   spinCurrentPlayer(state, () => 0);
 
   assert.equal(state.players[0].cash, 500);
-  assert.equal(state.players[0].spins, 3);
+  assert.equal(state.players[0].earnedSpins, 3);
+  assert.equal(state.players[0].passedSpins, 0);
   assert.equal(state.currentPlayerIndex, 0);
   assert.equal(state.lastSpaceIndex, 0);
   assert.equal(state.message.includes('$500'), true);
@@ -34,12 +39,12 @@ test('spinCurrentPlayer resolves a cash space', () => {
 
 test('extra spin keeps the player alive with a net zero spin change', () => {
   const state = createGame();
-  state.players[0].spins = 1;
+  state.players[0].earnedSpins = 1;
 
   const extraSpinIndex = BOARD_SPACES.findIndex((space) => space.type === 'extra');
   spinCurrentPlayer(state, () => extraSpinIndex / BOARD_SPACES.length);
 
-  assert.equal(state.players[0].spins, 1);
+  assert.equal(getTotalSpins(state.players[0]), 1);
 });
 
 test('four whammies eliminate a player', () => {
@@ -55,15 +60,29 @@ test('four whammies eliminate a player', () => {
 
 test('passCurrentPlayer transfers spins to the next active player', () => {
   const state = createGame();
-  state.players[1].spins = 0;
-  state.players[0].spins = 3;
+  state.players[1].earnedSpins = 0;
+  state.players[2].earnedSpins = 4;
+  state.players[0].earnedSpins = 3;
   state.currentPlayerIndex = 0;
 
   passCurrentPlayer(state);
 
-  assert.equal(state.players[0].spins, 0);
-  assert.equal(state.players[2].spins, 7);
+  assert.equal(state.players[0].earnedSpins, 0);
+  assert.equal(state.players[2].earnedSpins, 4);
+  assert.equal(state.players[2].passedSpins, 3);
+  assert.equal(getTotalSpins(state.players[2]), 7);
   assert.equal(state.currentPlayerIndex, 2);
+});
+
+test('spin consumes passed spins before earned spins', () => {
+  const state = createGame();
+  state.players[0].earnedSpins = 2;
+  state.players[0].passedSpins = 1;
+
+  spinCurrentPlayer(state, () => 0);
+
+  assert.equal(state.players[0].earnedSpins, 2);
+  assert.equal(state.players[0].passedSpins, 0);
 });
 
 test('determineWinner picks the highest cash total', () => {

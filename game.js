@@ -37,10 +37,15 @@ function createPlayer(name, human = false) {
     name,
     human,
     cash: 0,
-    spins: STARTING_SPINS,
+    earnedSpins: STARTING_SPINS,
+    passedSpins: 0,
     whammies: 0,
     eliminated: false
   };
+}
+
+export function getTotalSpins(player) {
+  return player.earnedSpins + player.passedSpins;
 }
 
 export function createGame() {
@@ -67,7 +72,7 @@ export function nextActivePlayerIndex(state, fromIndex = state.currentPlayerInde
   for (let offset = 1; offset <= state.players.length; offset += 1) {
     const index = (fromIndex + offset) % state.players.length;
     const player = state.players[index];
-    if (!player.eliminated && player.spins > 0) {
+    if (!player.eliminated && getTotalSpins(player) > 0) {
       return index;
     }
   }
@@ -136,7 +141,7 @@ export function applySpace(state, playerIndex, space, spaceIndex = null) {
       );
       break;
     case 'extra':
-      player.spins += 1;
+      player.earnedSpins += 1;
       pushLog(state, `${player.name} earns an extra spin.`);
       break;
     case 'whammy':
@@ -145,7 +150,8 @@ export function applySpace(state, playerIndex, space, spaceIndex = null) {
       pushLog(state, `${player.name} gets a WHAMMY!`);
       if (player.whammies >= 4) {
         player.eliminated = true;
-        player.spins = 0;
+        player.earnedSpins = 0;
+        player.passedSpins = 0;
         pushLog(state, `${player.name} is out of the round.`);
       }
       break;
@@ -162,17 +168,21 @@ export function spinCurrentPlayer(state, rng = Math.random) {
   }
 
   const player = getCurrentPlayer(state);
-  if (!player || player.eliminated || player.spins <= 0) {
+  if (!player || player.eliminated || getTotalSpins(player) <= 0) {
     return state;
   }
 
-  player.spins -= 1;
+  if (player.passedSpins > 0) {
+    player.passedSpins -= 1;
+  } else {
+    player.earnedSpins -= 1;
+  }
   const spaceIndex = Math.floor(rng() * BOARD_SPACES.length);
   const space = BOARD_SPACES[spaceIndex];
 
   applySpace(state, state.currentPlayerIndex, space, spaceIndex);
 
-  if (player.eliminated || player.spins === 0) {
+  if (player.eliminated || getTotalSpins(player) === 0) {
     endGameIfNeeded(state);
   }
 
@@ -185,7 +195,7 @@ export function passCurrentPlayer(state) {
   }
 
   const player = getCurrentPlayer(state);
-  if (!player || player.eliminated || player.spins <= 0) {
+  if (!player || player.eliminated || player.earnedSpins <= 0) {
     return state;
   }
 
@@ -194,9 +204,9 @@ export function passCurrentPlayer(state) {
     return state;
   }
 
-  const spinsToPass = player.spins;
-  player.spins = 0;
-  state.players[nextIndex].spins += spinsToPass;
+  const spinsToPass = player.earnedSpins;
+  player.earnedSpins = 0;
+  state.players[nextIndex].passedSpins += spinsToPass;
   state.currentPlayerIndex = nextIndex;
   pushLog(
     state,
@@ -212,16 +222,18 @@ export function performAIAction(state, rng = Math.random) {
     return state;
   }
 
-  if (player.spins <= 0) {
+  if (getTotalSpins(player) <= 0) {
     endGameIfNeeded(state);
     return state;
   }
 
-  if (
-    player.cash >= AI_PASS_CASH_THRESHOLD ||
-    player.whammies >= AI_PASS_WHAMMY_THRESHOLD ||
-    player.spins >= AI_PASS_SPIN_THRESHOLD
-  ) {
+  const shouldPass =
+    player.earnedSpins > 0 &&
+    (player.cash >= AI_PASS_CASH_THRESHOLD ||
+      player.whammies >= AI_PASS_WHAMMY_THRESHOLD ||
+      getTotalSpins(player) >= AI_PASS_SPIN_THRESHOLD);
+
+  if (shouldPass) {
     passCurrentPlayer(state);
     return state;
   }
