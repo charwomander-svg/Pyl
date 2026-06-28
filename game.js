@@ -141,6 +141,11 @@ export function applySpace(state, playerIndex, space, spaceIndex = null) {
       pushLog(state, `${player.name} earns an extra spin.`);
       break;
     case 'double':
+      if (player.cash === 0) {
+        pushLog(state, `${player.name} lands on Double Cash but has nothing to double.`);
+        break;
+      }
+
       player.cash *= 2;
       pushLog(state, `${player.name} doubles their cash to ${formatMoney(player.cash)}.`);
       break;

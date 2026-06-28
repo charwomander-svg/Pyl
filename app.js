@@ -51,7 +51,7 @@ function renderBoard() {
       space.type === 'cash' || space.type === 'prize'
         ? formatMoney(space.amount)
         : space.type === 'double'
-          ? 'Double cash'
+        ? 'Double Cash'
           : space.type === 'extra'
             ? '+1 spin'
             : 'Whammy';

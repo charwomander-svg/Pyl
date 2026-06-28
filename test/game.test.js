@@ -52,6 +52,15 @@ test('double cash space doubles the player bankroll', () => {
   assert.equal(state.message.includes('doubles their cash'), true);
 });
 
+test('double cash space does nothing when bankroll is zero', () => {
+  const state = createGame();
+
+  applySpace(state, 0, { type: 'double', label: 'Double Cash' });
+
+  assert.equal(state.players[0].cash, 0);
+  assert.equal(state.message.includes('has nothing to double'), true);
+});
+
 test('four whammies eliminate a player', () => {
   const state = createGame();
 
