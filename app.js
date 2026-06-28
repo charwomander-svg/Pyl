@@ -47,14 +47,16 @@ function canCurrentPlayerPass() {
 function renderBoard() {
   elements.board.innerHTML = BOARD_SPACES.map((space, index) => {
     const isHot = state.lastSpaceIndex === index;
-    const detail =
-      space.type === 'cash' || space.type === 'prize'
-        ? formatMoney(space.amount)
-        : space.type === 'double'
-        ? 'Double Cash'
-          : space.type === 'extra'
-            ? '+1 spin'
-            : 'Whammy';
+    let detail = 'Whammy';
+
+    if (space.type === 'cash' || space.type === 'prize') {
+      detail = formatMoney(space.amount);
+    } else if (space.type === 'double') {
+      detail = 'Double Cash';
+    } else if (space.type === 'extra') {
+      detail = '+1 spin';
+    }
+
     return `
       <li class="board-space ${space.type} ${isHot ? 'active' : ''}">
         <span class="space-label">${space.label}</span>
