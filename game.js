@@ -9,6 +9,7 @@ export const BOARD_SPACES = [
   { type: 'cash', label: '$1,000', amount: 1000 },
   { type: 'cash', label: '$1,250', amount: 1250 },
   { type: 'extra', label: '+1 Spin' },
+  { type: 'double', label: 'Double Cash' },
   { type: 'cash', label: '$1,500', amount: 1500 },
   { type: 'cash', label: '$2,000', amount: 2000 },
   { type: 'prize', label: 'Prize Box', amount: 2500 },
@@ -138,6 +139,10 @@ export function applySpace(state, playerIndex, space, spaceIndex = null) {
     case 'extra':
       player.spins += 1;
       pushLog(state, `${player.name} earns an extra spin.`);
+      break;
+    case 'double':
+      player.cash *= 2;
+      pushLog(state, `${player.name} doubles their cash to ${formatMoney(player.cash)}.`);
       break;
     case 'whammy':
       player.cash = 0;

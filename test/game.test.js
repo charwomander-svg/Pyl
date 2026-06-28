@@ -42,6 +42,16 @@ test('extra spin keeps the player alive with a net zero spin change', () => {
   assert.equal(state.players[0].spins, 1);
 });
 
+test('double cash space doubles the player bankroll', () => {
+  const state = createGame();
+  state.players[0].cash = 1200;
+
+  applySpace(state, 0, { type: 'double', label: 'Double Cash' });
+
+  assert.equal(state.players[0].cash, 2400);
+  assert.equal(state.message.includes('doubles their cash'), true);
+});
+
 test('four whammies eliminate a player', () => {
   const state = createGame();
 

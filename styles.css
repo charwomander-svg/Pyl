@@ -132,6 +132,10 @@ p {
   background: linear-gradient(180deg, #26493f, #122019);
 }
 
+.board-space.double {
+  background: linear-gradient(180deg, #4a2a78, #1f102f);
+}
+
 .space-label {
   font-weight: 700;
 }
