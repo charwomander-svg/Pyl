@@ -3,6 +3,7 @@ import {
   createGame,
   formatMoney,
   getCurrentPlayer,
+  getTotalSpins,
   passCurrentPlayer,
   performAIAction,
   nextActivePlayerIndex,
@@ -39,7 +40,7 @@ function canCurrentPlayerPass() {
   return Boolean(
     current?.human &&
       !state.finished &&
-      current.spins > 0 &&
+      current.earnedSpins > 0 &&
       nextActivePlayerIndex(state) !== -1
   );
 }
@@ -64,7 +65,9 @@ function renderPlayers() {
         <h2>${player.name}</h2>
         <dl>
           <div><dt>Cash</dt><dd>${formatMoney(player.cash)}</dd></div>
-          <div><dt>Spins</dt><dd>${player.spins}</dd></div>
+          <div><dt>Earned</dt><dd>${player.earnedSpins}</dd></div>
+          <div><dt>Passed</dt><dd>${player.passedSpins}</dd></div>
+          <div><dt>Total Spins</dt><dd>${getTotalSpins(player)}</dd></div>
           <div><dt>Whammies</dt><dd>${player.whammies}</dd></div>
         </dl>
         <p>${player.eliminated ? 'Out of the round' : player.human ? 'Human player' : 'AI player'}</p>
@@ -79,7 +82,7 @@ function renderLog() {
 
 function renderControls() {
   const current = getCurrentPlayer(state);
-  const canAct = current?.human && !state.finished && current.spins > 0;
+  const canAct = current?.human && !state.finished && getTotalSpins(current) > 0;
   const canPass = canCurrentPlayerPass();
 
   elements.spin.disabled = !canAct;
