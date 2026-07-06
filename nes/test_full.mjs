@@ -19,27 +19,32 @@ const B = {
 };
 function press(btn) { nes.buttonDown(1, btn); runFrames(2); nes.buttonUp(1, btn); runFrames(2); }
 
-// zero page / RAM addresses (computed from linker layout)
+const CASES_TOTAL = 22;
+const NUM_COLS = 11;
+
+// zero page / RAM addresses (computed from build/map.txt after Phase 2 rebuild)
 const ADDR = {
   game_state: 0x0005,
   cursor: 0x0006,
   own_case: 0x0008,
-  case_value: 0x0300, // 10 bytes
-  case_opened: 0x030A, // 10 bytes
-  offer_lo: 0x0314,
-  offer_hi: 0x0315,
+  round_idx: 0x0009,
+  cases_left: 0x000A,
+  final_other: 0x000B,
+  case_value: 0x0300, // 22 bytes
+  case_opened: 0x0316, // 22 bytes
+  offer_lo: 0x032C,
+  offer_hi: 0x032D,
 };
 
 function mem(addr) { return nes.cpu.mem[addr]; }
-function getCaseOpened() { const a = []; for (let i = 0; i < 10; i++) a.push(mem(ADDR.case_opened + i)); return a; }
-function getCursorRowCol() { const c = mem(ADDR.cursor); return { row: (c / 5) | 0, col: c % 5 }; }
+function getCaseOpened() { const a = []; for (let i = 0; i < CASES_TOTAL; i++) a.push(mem(ADDR.case_opened + i)); return a; }
+function getCursorRowCol() { const c = mem(ADDR.cursor); return { row: (c / NUM_COLS) | 0, col: c % NUM_COLS }; }
 
 function moveCursorTo(targetIdx) {
-  // grid: 2 rows x 5 cols. Move via LEFT/RIGHT within row, UP/DOWN toggles row.
   let guard = 0;
-  while (mem(ADDR.cursor) !== targetIdx && guard < 20) {
+  while (mem(ADDR.cursor) !== targetIdx && guard < 30) {
     const cur = getCursorRowCol();
-    const tgt = { row: (targetIdx / 5) | 0, col: targetIdx % 5 };
+    const tgt = { row: (targetIdx / NUM_COLS) | 0, col: targetIdx % NUM_COLS };
     if (cur.row !== tgt.row) {
       press(B.DOWN);
     } else if (cur.col !== tgt.col) {
@@ -53,11 +58,11 @@ function openNextUnopenedCase() {
   const opened = getCaseOpened();
   const own = mem(ADDR.own_case);
   let target = -1;
-  for (let i = 0; i < 10; i++) { if (i !== own && !opened[i]) { target = i; break; } }
+  for (let i = 0; i < CASES_TOTAL; i++) { if (i !== own && !opened[i]) { target = i; break; } }
   if (target === -1) throw new Error('No unopened case available');
   moveCursorTo(target);
   press(B.A);
-  runFrames(3);
+  runFrames(20); // allow the blocking case-open animation (~8 vblanks) to finish
   return target;
 }
 
@@ -84,62 +89,45 @@ press(B.START);
 runFrames(10);
 saveFrame('t02_pick_own');
 
-// pick own case = index 0 (cursor already there)
 press(B.A);
 runFrames(10);
 saveFrame('t03_round1_prompt');
 
 console.log('own_case =', mem(ADDR.own_case));
 
-// Round 1: open 3 cases
-for (let i = 0; i < 3; i++) {
-  const opened = openNextUnopenedCase();
-  console.log('Round1 opened case', opened, 'value_idx=', mem(ADDR.case_value + opened));
+const roundSchedule = [5, 5, 4, 3, 2, 1];
+
+for (let r = 0; r < roundSchedule.length; r++) {
+  const n = roundSchedule[r];
+  for (let i = 0; i < n; i++) {
+    const opened = openNextUnopenedCase();
+    console.log(`Round${r + 1} opened case`, opened, 'value_idx=', mem(ADDR.case_value + opened));
+  }
+  runFrames(10);
+  saveFrame(`t_offer_r${r + 1}`);
+  console.log(`offer${r + 1} =`, mem(ADDR.offer_lo) | (mem(ADDR.offer_hi) << 8), 'state=', mem(ADDR.game_state));
+
+  if (r < roundSchedule.length - 1) {
+    press(B.B);
+    runFrames(10);
+    saveFrame(`t_round${r + 2}_prompt`);
+  }
 }
-runFrames(10);
-saveFrame('t04_offer1');
-console.log('offer1 =', mem(ADDR.offer_lo) | (mem(ADDR.offer_hi) << 8), 'state=', mem(ADDR.game_state));
 
-press(B.B); // no deal
+press(B.B);
 runFrames(10);
-saveFrame('t05_round2_prompt');
+saveFrame('t_swap_prompt');
+console.log('state after no-deal on last offer =', mem(ADDR.game_state), '(expect 4=FINAL_SWAP)');
+console.log('own_case=', mem(ADDR.own_case), 'final_other=', mem(ADDR.final_other));
 
-// Round 2: open 3 cases
-for (let i = 0; i < 3; i++) {
-  const opened = openNextUnopenedCase();
-  console.log('Round2 opened case', opened, 'value_idx=', mem(ADDR.case_value + opened));
-}
+press(B.B);
 runFrames(10);
-saveFrame('t06_offer2');
-console.log('offer2 =', mem(ADDR.offer_lo) | (mem(ADDR.offer_hi) << 8), 'state=', mem(ADDR.game_state));
-
-press(B.B); // no deal
-runFrames(10);
-saveFrame('t07_round3_prompt');
-
-// Round 3: open 2 cases
-for (let i = 0; i < 2; i++) {
-  const opened = openNextUnopenedCase();
-  console.log('Round3 opened case', opened, 'value_idx=', mem(ADDR.case_value + opened));
-}
-runFrames(10);
-saveFrame('t08_offer3');
-console.log('offer3 =', mem(ADDR.offer_lo) | (mem(ADDR.offer_hi) << 8), 'state=', mem(ADDR.game_state));
-
-press(B.B); // no deal -> should go to FINAL_SWAP
-runFrames(10);
-saveFrame('t09_swap_prompt');
-console.log('state after no-deal on offer3 =', mem(ADDR.game_state), '(expect 4=FINAL_SWAP)');
-console.log('own_case=', mem(ADDR.own_case), 'final_other=', mem(0x000B));
-
-press(B.B); // swap
-runFrames(10);
-saveFrame('t10_final_result');
+saveFrame('t_final_result');
 console.log('final state=', mem(ADDR.game_state), '(expect 5=GAMEOVER)');
 
 press(B.START);
 runFrames(10);
-saveFrame('t11_back_to_title');
+saveFrame('t_back_to_title');
 console.log('state=', mem(ADDR.game_state), '(expect 0=TITLE)');
 
-console.log('DONE - full playthrough with instrumented state tracking succeeded.');
+console.log('DONE - full 22-case playthrough with instrumented state tracking succeeded.');

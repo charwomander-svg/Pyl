@@ -132,6 +132,34 @@ function cursorArrowTile() {
   return tileFromGlyph(rows);
 }
 
+function headTile() {
+  const rows = [
+    '..###..',
+    '.#####.',
+    '#######',
+    '#######',
+    '#######',
+    '.#####.',
+    '..###..',
+    '.......'
+  ];
+  return tileFromGlyph(rows);
+}
+
+function legsTile() {
+  const rows = [
+    '#######',
+    '#######',
+    '#######',
+    '#######',
+    '##...##',
+    '##...##',
+    '##...##',
+    '.......'
+  ];
+  return tileFromGlyph(rows);
+}
+
 // Build 256-tile CHR bank (4KB used for background AND sprites, both point here)
 const TILES = [];
 for (let i = 0; i < 256; i++) TILES.push(new Array(16).fill(0));
@@ -146,6 +174,8 @@ CHARMAP_ORDER.forEach((ch, idx) => {
 TILES[44] = solidTile();
 TILES[45] = caseOutlineTile();
 TILES[46] = cursorArrowTile();
+TILES[47] = headTile();
+TILES[48] = legsTile();
 
 // We only need 4KB (256 tiles) since both BG and sprites reuse the same pattern table.
 // But NES CHR-ROM is typically in 8KB banks; mirror the same 4KB twice to fill 8KB bank.

@@ -1,4 +1,7 @@
-; ============================================================
+const fs = require('fs');
+const path = require('path');
+
+const src = `; ============================================================
 ; DEAL OR NO DEAL - NES homebrew (22-case edition)
 ; ============================================================
 
@@ -1812,57 +1815,15 @@ str_swap2:      .byte "A=KEEP CASE  B=SWAP",$FF
 str_final_result: .byte "YOUR CASE HELD",$FF
 str_restart:    .byte "PRESS START",$FF
 
-val_str_0: .byte "$1",$FF
-val_str_1: .byte "$5",$FF
-val_str_2: .byte "$10",$FF
-val_str_3: .byte "$25",$FF
-val_str_4: .byte "$50",$FF
-val_str_5: .byte "$75",$FF
-val_str_6: .byte "$100",$FF
-val_str_7: .byte "$200",$FF
-val_str_8: .byte "$300",$FF
-val_str_9: .byte "$400",$FF
-val_str_10: .byte "$500",$FF
-val_str_11: .byte "$600",$FF
-val_str_12: .byte "$700",$FF
-val_str_13: .byte "$800",$FF
-val_str_14: .byte "$900",$FF
-val_str_15: .byte "$1000",$FF
-val_str_16: .byte "$1500",$FF
-val_str_17: .byte "$2000",$FF
-val_str_18: .byte "$2500",$FF
-val_str_19: .byte "$3000",$FF
-val_str_20: .byte "$4000",$FF
-val_str_21: .byte "$5000",$FF
+\${valueStrings}
 
-val_str_lo: .byte <val_str_0,<val_str_1,<val_str_2,<val_str_3,<val_str_4,<val_str_5,<val_str_6,<val_str_7,<val_str_8,<val_str_9,<val_str_10,<val_str_11,<val_str_12,<val_str_13,<val_str_14,<val_str_15,<val_str_16,<val_str_17,<val_str_18,<val_str_19,<val_str_20,<val_str_21
-val_str_hi: .byte >val_str_0,>val_str_1,>val_str_2,>val_str_3,>val_str_4,>val_str_5,>val_str_6,>val_str_7,>val_str_8,>val_str_9,>val_str_10,>val_str_11,>val_str_12,>val_str_13,>val_str_14,>val_str_15,>val_str_16,>val_str_17,>val_str_18,>val_str_19,>val_str_20,>val_str_21
+val_str_lo: .byte \${valLoList}
+val_str_hi: .byte \${valHiList}
 
-case_num_1: .byte "1",$FF
-case_num_2: .byte "2",$FF
-case_num_3: .byte "3",$FF
-case_num_4: .byte "4",$FF
-case_num_5: .byte "5",$FF
-case_num_6: .byte "6",$FF
-case_num_7: .byte "7",$FF
-case_num_8: .byte "8",$FF
-case_num_9: .byte "9",$FF
-case_num_10: .byte "10",$FF
-case_num_11: .byte "11",$FF
-case_num_12: .byte "12",$FF
-case_num_13: .byte "13",$FF
-case_num_14: .byte "14",$FF
-case_num_15: .byte "15",$FF
-case_num_16: .byte "16",$FF
-case_num_17: .byte "17",$FF
-case_num_18: .byte "18",$FF
-case_num_19: .byte "19",$FF
-case_num_20: .byte "20",$FF
-case_num_21: .byte "21",$FF
-case_num_22: .byte "22",$FF
+\${caseNumStrings}
 
-case_num_str_lo: .byte <case_num_1,<case_num_2,<case_num_3,<case_num_4,<case_num_5,<case_num_6,<case_num_7,<case_num_8,<case_num_9,<case_num_10,<case_num_11,<case_num_12,<case_num_13,<case_num_14,<case_num_15,<case_num_16,<case_num_17,<case_num_18,<case_num_19,<case_num_20,<case_num_21,<case_num_22
-case_num_str_hi: .byte >case_num_1,>case_num_2,>case_num_3,>case_num_4,>case_num_5,>case_num_6,>case_num_7,>case_num_8,>case_num_9,>case_num_10,>case_num_11,>case_num_12,>case_num_13,>case_num_14,>case_num_15,>case_num_16,>case_num_17,>case_num_18,>case_num_19,>case_num_20,>case_num_21,>case_num_22
+case_num_str_lo: .byte \${caseNumLoList}
+case_num_str_hi: .byte \${caseNumHiList}
 
 ; ------------------------------------------------------------
 .segment "CHARS"
@@ -1873,3 +1834,34 @@ case_num_str_hi: .byte >case_num_1,>case_num_2,>case_num_3,>case_num_4,>case_num
     .addr NMI
     .addr RESET
     .addr IRQ
+`;
+
+const values = [1,5,10,25,50,75,100,200,300,400,500,600,700,800,900,1000,1500,2000,2500,3000,4000,5000];
+let valueStrings = '';
+let valLoList = [];
+let valHiList = [];
+values.forEach((v, i) => {
+  valueStrings += `val_str_${i}: .byte "$${v}",$FF\n`;
+  valLoList.push(`<val_str_${i}`);
+  valHiList.push(`>val_str_${i}`);
+});
+
+let caseNumStrings = '';
+let caseNumLoList = [];
+let caseNumHiList = [];
+for (let i = 1; i <= 22; i++) {
+  caseNumStrings += `case_num_${i}: .byte "${i}",$FF\n`;
+  caseNumLoList.push(`<case_num_${i}`);
+  caseNumHiList.push(`>case_num_${i}`);
+}
+
+const finalSrc = src
+  .replace('\${valueStrings}', valueStrings.trim())
+  .replace('\${valLoList}', valLoList.join(','))
+  .replace('\${valHiList}', valHiList.join(','))
+  .replace('\${caseNumStrings}', caseNumStrings.trim())
+  .replace('\${caseNumLoList}', caseNumLoList.join(','))
+  .replace('\${caseNumHiList}', caseNumHiList.join(','));
+
+fs.writeFileSync(path.join(__dirname, 'src', 'main.s'), finalSrc);
+console.log('Wrote main.s,', finalSrc.length, 'bytes');
