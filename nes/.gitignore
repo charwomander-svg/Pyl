@@ -1,0 +1,4 @@
+shots/
+build/*.o
+build/map.txt
+build/dbg.txt
