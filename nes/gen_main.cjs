@@ -68,6 +68,7 @@ TILE_CASE    = 45
 TILE_CURSOR  = 46
 TILE_HEAD    = 47
 TILE_LEGS    = 48
+TILE_DASH    = 43
 
 BTN_A      = $80
 BTN_B      = $40
@@ -85,21 +86,25 @@ ST_OFFER      = 3
 ST_FINAL_SWAP = 4
 ST_GAMEOVER   = 5
 
-CASES_TOTAL = 22
+CASES_TOTAL = 24
 NUM_ROUNDS  = 6
-NUM_COLS    = 11
+NUM_COLS    = 8
+NUM_ROWS    = 3
 
-CUR_ROW_A = 12
-ICON_ROW_A = 13
-NUM_ROW_A  = 14
-CUR_ROW_B  = 16
-ICON_ROW_B = 17
-NUM_ROW_B  = 18
+CUR_ROW_A = 9
+ICON_ROW_A = 10
+NUM_ROW_A  = 11
+CUR_ROW_B  = 13
+ICON_ROW_B = 14
+NUM_ROW_B  = 15
+CUR_ROW_C  = 17
+ICON_ROW_C = 18
+NUM_ROW_C  = 19
 
-MSGROW1 = 8
-MSGROW2 = 10
-PROMPTROW1 = 20
-PROMPTROW2 = 22
+MSGROW1 = 7
+MSGROW2 = 21
+PROMPTROW1 = 23
+PROMPTROW2 = 25
 
 ; ------------------------------------------------------------
 ; Zero page variables
@@ -118,6 +123,7 @@ round_idx:      .res 1
 cases_left:     .res 1
 final_other:    .res 1
 chosen_case:    .res 1
+val_idx:        .res 1
 rng:            .res 1
 
 ptr_lo:         .res 1
@@ -153,8 +159,8 @@ blink_state:    .res 1
 ; RAM arrays
 ; ------------------------------------------------------------
 .segment "BSS"
-case_value:     .res 22   ; value-index (0-21) assigned to each case slot
-case_opened:    .res 22   ; 0/1
+case_value:     .res 24   ; value-index (0-23) assigned to each case slot
+case_opened:    .res 24   ; 0/1
 offer_lo:       .res 1
 offer_hi:       .res 1
 offer_str:      .res 8    ; '$' + up to 5 digits + terminator
@@ -546,6 +552,7 @@ state_pick_open:
     ldx cursor
     lda case_value,x
     tax
+    stx val_idx
     lda sum_lo
     sec
     sbc values_lo,x
@@ -554,6 +561,9 @@ state_pick_open:
     sbc values_hi,x
     sta sum_hi
     dec count8
+
+    ldx val_idx
+    jsr cross_out_legend
 
     dec cases_left
     lda cases_left
@@ -713,19 +723,28 @@ move_cursor_to_valid:
 
 ; ============================================================
 ; handle_cursor_move: reads pad1_new for dpad, updates cursor
-; grid is 2 rows x 11 cols
+; grid is 3 rows x 8 cols
 ; ============================================================
 handle_cursor_move:
     lda cursor
+    cmp #(NUM_COLS*2)
+    bcc @notrow2
+    sec
+    sbc #(NUM_COLS*2)
+    sta tmp_col
+    lda #2
+    sta tmp_row
+    jmp @gotrowcol
+@notrow2:
     cmp #NUM_COLS
-    bcc @rowIs0
+    bcc @row0
     sec
     sbc #NUM_COLS
     sta tmp_col
     lda #1
     sta tmp_row
     jmp @gotrowcol
-@rowIs0:
+@row0:
     sta tmp_col
     lda #0
     sta tmp_row
@@ -745,7 +764,7 @@ handle_cursor_move:
 @tryleft:
     lda pad1_new
     and #BTN_LEFT
-    beq @tryud
+    beq @trydown
     lda tmp_col
     bne @decok
     lda #NUM_COLS
@@ -755,12 +774,28 @@ handle_cursor_move:
     sta tmp_col
     jmp @recalc
 
-@tryud:
+@trydown:
     lda pad1_new
-    and #(BTN_UP | BTN_DOWN)
+    and #BTN_DOWN
+    beq @tryup
+    inc tmp_row
+    lda tmp_row
+    cmp #NUM_ROWS
+    bne @recalc
+    lda #0
+    sta tmp_row
+    jmp @recalc
+
+@tryup:
+    lda pad1_new
+    and #BTN_UP
     beq @none
     lda tmp_row
-    eor #1
+    bne @rdecok
+    lda #NUM_ROWS
+@rdecok:
+    sec
+    sbc #1
     sta tmp_row
     jmp @recalc
 
@@ -770,6 +805,14 @@ handle_cursor_move:
 @recalc:
     lda tmp_row
     beq @rowzero
+    cmp #1
+    beq @rowone
+    lda tmp_col
+    clc
+    adc #(NUM_COLS*2)
+    sta cursor
+    jmp @recalcdone
+@rowone:
     lda tmp_col
     clc
     adc #NUM_COLS
@@ -909,6 +952,33 @@ case_open_animation:
     rts
 
 ; ============================================================
+; cross_out_legend: blanks the prize-board legend entry for the
+; given value index (X) with dashes, marking it as eliminated.
+; ============================================================
+cross_out_legend:
+    lda legend_row,x
+    sta tmp_row
+    lda legend_col,x
+    sta tmp_col
+    jsr calc_ppu_addr
+    lda #$00
+    sta $2001
+    lda ppu_hi
+    sta $2006
+    lda ppu_lo
+    sta $2006
+    lda #TILE_DASH
+    ldy #4
+@loop:
+    sta $2007
+    dey
+    bne @loop
+    jsr restore_scroll
+    lda #$1E
+    sta $2001
+    rts
+
+; ============================================================
 ; init_game: shuffle cases, reset state, draw game screen
 ; ============================================================
 init_game:
@@ -931,8 +1001,8 @@ init_game:
     cpx #CASES_TOTAL
     bne @fill
 
-    ; fisher-yates shuffle: for i = 21 downto 1, j = rand(0..i)
-    ldx #21
+    ; fisher-yates shuffle: for i = 23 downto 1, j = rand(0..i)
+    ldx #23
 @shuffle:
     stx loop_i
     inx                  ; range = i+1
@@ -963,9 +1033,9 @@ init_game:
     sta cursor
     sta round_idx
 
-    lda #<23666
+    lda #<41166
     sta sum_lo
-    lda #>23666
+    lda #>41166
     sta sum_hi
     lda #CASES_TOTAL
     sta count8
@@ -1497,7 +1567,7 @@ draw_game_screen:
     lda #$1E
     sta $2001
 
-    ; draw all 22 case icons + numbers
+    ; draw all 24 case icons + numbers
     ldx #0
 @caseloop:
     stx loop_i
@@ -1535,6 +1605,35 @@ draw_game_screen:
     inx
     cpx #CASES_TOTAL
     bne @caseloop
+
+    ; draw prize legend header + all 24 dollar amounts (blanked out
+    ; with dashes as their case gets opened, via cross_out_legend)
+    lda #<str_prizes
+    sta ptr_lo
+    lda #>str_prizes
+    sta ptr_hi
+    lda #24
+    ldx #12
+    jsr print_string_rc
+
+    ldx #0
+@legendloop:
+    stx loop_i
+    lda legend_row,x
+    sta tmp_row
+    lda legend_col,x
+    sta tmp_col
+    lda val_str_lo,x
+    sta ptr_lo
+    lda val_str_hi,x
+    sta ptr_hi
+    lda tmp_row
+    ldx tmp_col
+    jsr print_string_rc
+    ldx loop_i
+    inx
+    cpx #CASES_TOTAL
+    bne @legendloop
 
     lda #<str_pickown
     sta ptr_lo
@@ -1789,15 +1888,21 @@ palette:
 music_period_lo: .byte $C9,$EA,$C9,$A0
 music_period_hi: .byte $00,$00,$00,$00
 
-round_sched: .byte 5,5,4,3,2,1
+round_sched: .byte 6,5,4,3,2,2
 
-case_col: .byte 0,3,6,9,12,15,18,21,24,27,30, 0,3,6,9,12,15,18,21,24,27,30
-case_row_icon: .byte ICON_ROW_A,ICON_ROW_A,ICON_ROW_A,ICON_ROW_A,ICON_ROW_A,ICON_ROW_A,ICON_ROW_A,ICON_ROW_A,ICON_ROW_A,ICON_ROW_A,ICON_ROW_A, ICON_ROW_B,ICON_ROW_B,ICON_ROW_B,ICON_ROW_B,ICON_ROW_B,ICON_ROW_B,ICON_ROW_B,ICON_ROW_B,ICON_ROW_B,ICON_ROW_B,ICON_ROW_B
-case_row_num:  .byte NUM_ROW_A,NUM_ROW_A,NUM_ROW_A,NUM_ROW_A,NUM_ROW_A,NUM_ROW_A,NUM_ROW_A,NUM_ROW_A,NUM_ROW_A,NUM_ROW_A,NUM_ROW_A, NUM_ROW_B,NUM_ROW_B,NUM_ROW_B,NUM_ROW_B,NUM_ROW_B,NUM_ROW_B,NUM_ROW_B,NUM_ROW_B,NUM_ROW_B,NUM_ROW_B,NUM_ROW_B
-case_row_cur:  .byte CUR_ROW_A,CUR_ROW_A,CUR_ROW_A,CUR_ROW_A,CUR_ROW_A,CUR_ROW_A,CUR_ROW_A,CUR_ROW_A,CUR_ROW_A,CUR_ROW_A,CUR_ROW_A, CUR_ROW_B,CUR_ROW_B,CUR_ROW_B,CUR_ROW_B,CUR_ROW_B,CUR_ROW_B,CUR_ROW_B,CUR_ROW_B,CUR_ROW_B,CUR_ROW_B,CUR_ROW_B
+case_col: .byte 0,4,8,12,16,20,24,28, 0,4,8,12,16,20,24,28, 0,4,8,12,16,20,24,28
+case_row_icon: .byte ICON_ROW_A,ICON_ROW_A,ICON_ROW_A,ICON_ROW_A,ICON_ROW_A,ICON_ROW_A,ICON_ROW_A,ICON_ROW_A, ICON_ROW_B,ICON_ROW_B,ICON_ROW_B,ICON_ROW_B,ICON_ROW_B,ICON_ROW_B,ICON_ROW_B,ICON_ROW_B, ICON_ROW_C,ICON_ROW_C,ICON_ROW_C,ICON_ROW_C,ICON_ROW_C,ICON_ROW_C,ICON_ROW_C,ICON_ROW_C
+case_row_num:  .byte NUM_ROW_A,NUM_ROW_A,NUM_ROW_A,NUM_ROW_A,NUM_ROW_A,NUM_ROW_A,NUM_ROW_A,NUM_ROW_A, NUM_ROW_B,NUM_ROW_B,NUM_ROW_B,NUM_ROW_B,NUM_ROW_B,NUM_ROW_B,NUM_ROW_B,NUM_ROW_B, NUM_ROW_C,NUM_ROW_C,NUM_ROW_C,NUM_ROW_C,NUM_ROW_C,NUM_ROW_C,NUM_ROW_C,NUM_ROW_C
+case_row_cur:  .byte CUR_ROW_A,CUR_ROW_A,CUR_ROW_A,CUR_ROW_A,CUR_ROW_A,CUR_ROW_A,CUR_ROW_A,CUR_ROW_A, CUR_ROW_B,CUR_ROW_B,CUR_ROW_B,CUR_ROW_B,CUR_ROW_B,CUR_ROW_B,CUR_ROW_B,CUR_ROW_B, CUR_ROW_C,CUR_ROW_C,CUR_ROW_C,CUR_ROW_C,CUR_ROW_C,CUR_ROW_C,CUR_ROW_C,CUR_ROW_C
 
-values_lo: .byte <1,<5,<10,<25,<50,<75,<100,<200,<300,<400,<500,<600,<700,<800,<900,<1000,<1500,<2000,<2500,<3000,<4000,<5000
-values_hi: .byte >1,>5,>10,>25,>50,>75,>100,>200,>300,>400,>500,>600,>700,>800,>900,>1000,>1500,>2000,>2500,>3000,>4000,>5000
+; prize-board legend: static list of all 24 dollar amounts shown at the
+; bottom of the screen (4 rows x 6 cols); blanked out with dashes as
+; each case is opened (same index ordering as values_lo/hi/val_str)
+legend_row: .byte 26,26,26,26,26,26, 27,27,27,27,27,27, 28,28,28,28,28,28, 29,29,29,29,29,29
+legend_col: .byte 0,5,10,15,20,25, 0,5,10,15,20,25, 0,5,10,15,20,25, 0,5,10,15,20,25
+
+values_lo: .byte <1,<5,<10,<25,<50,<75,<100,<200,<300,<400,<500,<600,<700,<800,<900,<1000,<1500,<2000,<2500,<3000,<4000,<5000,<7500,<10000
+values_hi: .byte >1,>5,>10,>25,>50,>75,>100,>200,>300,>400,>500,>600,>700,>800,>900,>1000,>1500,>2000,>2500,>3000,>4000,>5000,>7500,>10000
 
 str_title:      .byte "DEAL OR NO DEAL",$FF
 str_title2:     .byte "DEAL OR NO DEAL",$FF
@@ -1814,6 +1919,7 @@ str_swap1:      .byte "FINAL CASE REMAINS",$FF
 str_swap2:      .byte "A=KEEP CASE  B=SWAP",$FF
 str_final_result: .byte "YOUR CASE HELD",$FF
 str_restart:    .byte "PRESS START",$FF
+str_prizes:     .byte "PRIZES",$FF
 
 \${valueStrings}
 
@@ -1836,12 +1942,22 @@ case_num_str_hi: .byte \${caseNumHiList}
     .addr IRQ
 `;
 
-const values = [1,5,10,25,50,75,100,200,300,400,500,600,700,800,900,1000,1500,2000,2500,3000,4000,5000];
+const values = [1,5,10,25,50,75,100,200,300,400,500,600,700,800,900,1000,1500,2000,2500,3000,4000,5000,7500,10000];
+// abbreviated grid/legend labels: no "$" prefix, thousands shown as
+// "1K"/"1.5K" etc. so the string never exceeds 4 tiles wide (matches
+// the 4-tile column spacing used by both the case grid and the prize
+// legend) and therefore never bleeds into a neighboring case/slot.
+function abbreviate(v) {
+  if (v < 1000) return String(v);
+  if (v % 1000 === 0) return (v / 1000) + 'K';
+  return (v / 1000).toFixed(1) + 'K';
+}
 let valueStrings = '';
 let valLoList = [];
 let valHiList = [];
 values.forEach((v, i) => {
-  valueStrings += `val_str_${i}: .byte "$${v}",$FF\n`;
+  const label = abbreviate(v);
+  valueStrings += `val_str_${i}: .byte "${label}",$FF\n`;
   valLoList.push(`<val_str_${i}`);
   valHiList.push(`>val_str_${i}`);
 });
@@ -1849,7 +1965,7 @@ values.forEach((v, i) => {
 let caseNumStrings = '';
 let caseNumLoList = [];
 let caseNumHiList = [];
-for (let i = 1; i <= 22; i++) {
+for (let i = 1; i <= 24; i++) {
   caseNumStrings += `case_num_${i}: .byte "${i}",$FF\n`;
   caseNumLoList.push(`<case_num_${i}`);
   caseNumHiList.push(`>case_num_${i}`);

@@ -19,8 +19,8 @@ const B = {
 };
 function press(btn) { nes.buttonDown(1, btn); runFrames(2); nes.buttonUp(1, btn); runFrames(2); }
 
-const CASES_TOTAL = 22;
-const NUM_COLS = 11;
+const CASES_TOTAL = 24;
+const NUM_COLS = 8;
 
 // zero page / RAM addresses (computed from build/map.txt after Phase 2 rebuild)
 const ADDR = {
@@ -30,10 +30,10 @@ const ADDR = {
   round_idx: 0x0009,
   cases_left: 0x000A,
   final_other: 0x000B,
-  case_value: 0x0300, // 22 bytes
-  case_opened: 0x0316, // 22 bytes
-  offer_lo: 0x032C,
-  offer_hi: 0x032D,
+  case_value: 0x0300, // 24 bytes
+  case_opened: 0x0318, // 24 bytes
+  offer_lo: 0x0330,
+  offer_hi: 0x0331,
 };
 
 function mem(addr) { return nes.cpu.mem[addr]; }
@@ -95,7 +95,7 @@ saveFrame('t03_round1_prompt');
 
 console.log('own_case =', mem(ADDR.own_case));
 
-const roundSchedule = [5, 5, 4, 3, 2, 1];
+const roundSchedule = [6, 5, 4, 3, 2, 2];
 
 for (let r = 0; r < roundSchedule.length; r++) {
   const n = roundSchedule[r];

@@ -8,13 +8,17 @@ the top of the screen, Hollywood-Squares style, on a rudimentary stage.
 
 ## Gameplay
 
-- **22 briefcases** (matching the real show's case count) holding hidden
-  dollar amounts: $1, $5, $10, $25, $50, $75, $100, $200, $300, $400,
-  $500, $600, $700, $800, $900, $1,000, $1,500, $2,000, $2,500, $3,000,
-  $4,000, $5,000 — randomly shuffled into the cases each game via an
-  8-bit LFSR + Fisher-Yates shuffle.
+- **24 briefcases** arranged in a clean 3-row x 8-column grid, holding
+  hidden dollar amounts: $1, $5, $10, $25, $50, $75, $100, $200, $300,
+  $400, $500, $600, $700, $800, $900, $1,000, $1,500, $2,000, $2,500,
+  $3,000, $4,000, $5,000, $7,500, $10,000 — randomly shuffled into the
+  cases each game via an 8-bit LFSR + Fisher-Yates shuffle.
+- A **prize board legend** at the bottom of the screen lists all 24
+  dollar amounts at all times; each entry is crossed out with dashes
+  the moment its case is opened, so you can always see what's still
+  in play — just like the real show's board.
 - Pick your own case (it stays sealed until the end).
-- Open cases across **six rounds** (5, 5, 4, 3, 2, then 1) using the
+- Open cases across **six rounds** (6, 5, 4, 3, 2, then 2) using the
   D-Pad + A. Each case opening plays a brief flicker animation and a
   noise "swoosh" sound effect before revealing its value.
 - After each round, the "banker" computes an offer based on the average
@@ -36,7 +40,7 @@ the top of the screen, Hollywood-Squares style, on a rudimentary stage.
 
 ## Controls
 
-- D-Pad: move the case-select cursor (2 rows x 11 columns)
+- D-Pad: move the case-select cursor (3 rows x 8 columns)
 - A: confirm selection / Deal / Keep
 - B: No Deal / Swap
 - Start: begin game / restart after a round ends
